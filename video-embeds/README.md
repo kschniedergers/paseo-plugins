@@ -1,4 +1,4 @@
-# video-embeds [desktop/web only]
+# video-embeds
 
 > **Not for mobile.** Plugins can't ship native video playback, so iOS and Android show a
 > placeholder card with the file name instead of a player. Desktop and browser get the real thing.

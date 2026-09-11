@@ -2,7 +2,7 @@
   "name": "video-embeds",
   "private": true,
   "version": "0.1.0",
-  "description": "[desktop/web only] Renders ![clip](/path.mp4) in assistant messages as an inline video player. Not for mobile: iOS/Android show a placeholder card.",
+  "description": "Renders ![clip](/path.mp4) in assistant messages as an inline video player. Desktop and web playback; iOS/Android show a placeholder card.",
   "license": "MIT",
   "scripts": {
     "typecheck": "tsc --noEmit",

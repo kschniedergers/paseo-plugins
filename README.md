@@ -4,7 +4,7 @@ Plugins for [Paseo](https://paseo.sh). One folder per plugin, each self-containe
 
 | Plugin                            | ID             | What it does                                                                                              |
 | --------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------- |
-| [`video-embeds/`](video-embeds)   | `video-embeds` | **[desktop/web only]** Renders `![clip](/path.mp4)` in assistant messages as an inline video player — mp4, webm, mov, with audio. Mobile shows a placeholder card. |
+| [`video-embeds/`](video-embeds)   | `video-embeds` | Renders `![clip](/path.mp4)` in assistant messages as an inline video player — mp4, webm, mov, with audio. Mobile shows a placeholder card. |
 
 ## Install
 
