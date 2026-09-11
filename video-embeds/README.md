@@ -1,4 +1,7 @@
-# video-embeds
+# video-embeds [desktop/web only]
+
+> **Not for mobile.** Plugins can't ship native video playback, so iOS and Android show a
+> placeholder card with the file name instead of a player. Desktop and browser get the real thing.
 
 Renders `![clip](/path/to/file.mp4)` in assistant messages as an inline video player with
 controls — mp4, webm, and mov. Agents can show you a screen recording or demo clip in the chat
