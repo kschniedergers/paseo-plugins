@@ -1,0 +1,21 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  plugins:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Typecheck and test every plugin
+        run: |
+          set -e
+          for manifest in */paseo-plugin.json; do
+            dir=$(dirname "$manifest")
+            echo "== $dir"
+            (cd "$dir" && npm ci && npm run typecheck && npm test)
+          done
