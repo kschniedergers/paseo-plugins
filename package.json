@@ -1,20 +1,22 @@
 {
   "name": "video-embeds",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Renders ![clip](/path.mp4) in assistant messages as an inline video player.",
+  "license": "MIT",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
-    "@getpaseo/client": "^0.4.0",
-    "@getpaseo/protocol": "^0.6.1",
+    "@getpaseo/plugin": "0.8.0",
     "@tanstack/react-query": "^5.90.11",
+    "@types/node": "^22.0.0",
     "@types/react": "~19.2.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "typescript": "^5.9.3",
-    "zod": "^4.4.3",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.6",
+    "zod": "^4.4.3"
   }
 }

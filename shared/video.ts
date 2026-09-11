@@ -1,4 +1,4 @@
-import type { PluginTimelineTransformerContribution } from "@getpaseo/plugin";
+import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 
 export const VIDEO_EMBED_KIND = "video-embed";
@@ -10,8 +10,17 @@ export const VIDEO_MIME_BY_EXTENSION: Record<string, string> = {
 };
 
 // The whole file travels through plugin RPC as base64, so keep the same cap
-// the core image pipeline uses for previews.
+// Paseo's built-in image previews use.
 export const MAX_VIDEO_BYTES = 30 * 1024 * 1024;
+
+export const readVideoRpc = defineRpc({
+  name: "video.read",
+  input: z.object({ path: z.string(), cwd: z.string().optional() }),
+  output: z.discriminatedUnion("ok", [
+    z.object({ ok: z.literal(true), base64: z.string(), mime: z.string() }),
+    z.object({ ok: z.literal(false), reason: z.enum(["too_large", "not_video", "unreadable"]) }),
+  ]),
+});
 
 const segmentSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("text"), text: z.string() }),
@@ -41,16 +50,13 @@ export function isVideoSource(source: string): boolean {
   return VIDEO_EXTENSION_PATTERN.test(withoutQuery);
 }
 
-type AssistantMessageTransformer =
-  PluginTimelineTransformerContribution<"assistant_message">["transform"];
-
 /**
- * Replaces assistant messages that embed videos with a plugin item. Messages
- * that also embed non-video images are left untouched so the host keeps
- * rendering those; a plugin replacement can only emit plugin items.
+ * Splits an assistant message into prose and video segments. Returns undefined
+ * when the message embeds no videos, or when it also embeds non-video images —
+ * a plugin replacement can only emit plugin items, so those messages stay with
+ * the host's image rendering.
  */
-export const transformAssistantMessage: AssistantMessageTransformer = ({ item }) => {
-  const text = item.text;
+export function parseVideoSegments(text: string): VideoEmbedSegment[] | undefined {
   const segments: VideoEmbedSegment[] = [];
   let videoCount = 0;
   let cursor = 0;
@@ -72,13 +78,9 @@ export const transformAssistantMessage: AssistantMessageTransformer = ({ item })
   if (videoCount === 0) {
     return undefined;
   }
-
   const trailing = text.slice(cursor).trim();
   if (trailing) {
     segments.push({ kind: "text", text: trailing });
   }
-
-  return {
-    items: [{ type: "plugin", kind: VIDEO_EMBED_KIND, version: 1, data: { segments } }],
-  };
-};
+  return segments;
+}

@@ -1,21 +1,15 @@
+import type { RpcInput, RpcOutput } from "@getpaseo/plugin";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { MAX_VIDEO_BYTES, VIDEO_MIME_BY_EXTENSION } from "./video.shared";
+import { MAX_VIDEO_BYTES, VIDEO_MIME_BY_EXTENSION, type readVideoRpc } from "../shared/video";
 
-type ReadVideoInput = { path: string; cwd?: string };
-type ReadVideoOutput =
-  | { ok: true; base64: string; mime: string }
-  | { ok: false; reason: "too_large" | "not_video" | "unreadable" };
+type Input = RpcInput<typeof readVideoRpc>;
+type Output = RpcOutput<typeof readVideoRpc>;
 
-function resolveVideoPath(input: ReadVideoInput): string {
-  const raw = input.path.startsWith("~/")
-    ? path.join(os.homedir(), input.path.slice(2))
-    : input.path;
-  if (path.isAbsolute(raw)) {
-    return raw;
-  }
-  return path.resolve(input.cwd ?? os.homedir(), raw);
+function resolveVideoPath(input: Input): string {
+  const raw = input.path.startsWith("~/") ? path.join(os.homedir(), input.path.slice(2)) : input.path;
+  return path.isAbsolute(raw) ? raw : path.resolve(input.cwd ?? os.homedir(), raw);
 }
 
 function hasVideoMagicBytes(buffer: Buffer, ext: string): boolean {
@@ -27,7 +21,7 @@ function hasVideoMagicBytes(buffer: Buffer, ext: string): boolean {
   return buffer.length >= 8 && buffer.toString("latin1", 4, 8) === "ftyp";
 }
 
-export async function readVideo(input: ReadVideoInput): Promise<ReadVideoOutput> {
+export async function readVideo(input: Input): Promise<Output> {
   const filePath = resolveVideoPath(input);
   const ext = path.extname(filePath).toLowerCase();
   const mime = VIDEO_MIME_BY_EXTENSION[ext];
@@ -57,6 +51,5 @@ export async function readVideo(input: ReadVideoInput): Promise<ReadVideoOutput>
   if (!hasVideoMagicBytes(bytes, ext)) {
     return { ok: false, reason: "not_video" };
   }
-
   return { ok: true, base64: bytes.toString("base64"), mime };
 }

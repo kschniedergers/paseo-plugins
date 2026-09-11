@@ -1,17 +1,11 @@
-import { useAgent, useRpc, type PluginTimelineItemProps } from "@getpaseo/plugin";
+import { useAgent, useRpc, type PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import { useQuery } from "@tanstack/react-query";
-import React, { createElement, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Text, View } from "react-native";
-import { readVideoRpc } from "./video.rpc";
-import type { VideoEmbedData } from "./video.shared";
+import { readVideoRpc, type VideoEmbedData } from "../shared/video";
+import { createMediaUrl, isWeb, renderVideoElement, revokeMediaUrl } from "./web";
 
-export function VideoEmbed({
-  item,
-  theme,
-  layout,
-  host,
-  agentId,
-}: PluginTimelineItemProps<VideoEmbedData>) {
+export function VideoEmbed({ item, theme, host, agentId }: PluginTimelineItemProps<VideoEmbedData>) {
   const agent = useAgent(agentId, ({ cwd }) => ({ cwd }));
   const styles = useMemo(
     () => ({
@@ -36,7 +30,6 @@ export function VideoEmbed({
             cwd={agent?.cwd}
             hostId={host.id}
             theme={theme}
-            platform={layout.platform}
           />
         ),
       )}
@@ -50,39 +43,34 @@ function VideoSegment({
   cwd,
   hostId,
   theme,
-  platform,
 }: {
   path: string;
   label: string;
   cwd: string | undefined;
   hostId: string;
   theme: PluginTimelineItemProps["theme"];
-  platform: "ios" | "android" | "web";
 }) {
   const readVideo = useRpc(readVideoRpc);
   const query = useQuery({
     queryKey: ["video-embed", hostId, cwd ?? null, path],
     queryFn: () => readVideo({ path, cwd }),
-    enabled: platform === "web",
+    enabled: isWeb,
     staleTime: Number.POSITIVE_INFINITY,
     retry: false,
   });
 
   const media = query.data?.ok ? query.data : null;
-  const objectUrl = useMemo(() => {
-    if (!media || platform !== "web") {
-      return null;
-    }
-    const bytes = Uint8Array.from(atob(media.base64), (char) => char.charCodeAt(0));
-    return URL.createObjectURL(new Blob([bytes], { type: media.mime }));
-  }, [media, platform]);
+  const mediaUrl = useMemo(
+    () => (media ? createMediaUrl(media.base64, media.mime) : null),
+    [media],
+  );
   useEffect(() => {
     return () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
+      if (mediaUrl) {
+        revokeMediaUrl(mediaUrl);
       }
     };
-  }, [objectUrl]);
+  }, [mediaUrl]);
 
   const styles = useMemo(
     () => ({
@@ -98,49 +86,25 @@ function VideoSegment({
     }),
     [theme],
   );
-
   const fileName = path.split("/").pop() ?? path;
 
-  if (platform !== "web") {
-    return (
-      <View style={[styles.frame, styles.state]}>
-        <Text style={styles.muted}>
-          ▶ {label || fileName} — video embeds play in the web and desktop apps.
-        </Text>
-      </View>
-    );
+  let message: string | null = null;
+  if (!isWeb) {
+    message = `▶ ${label || fileName} — video embeds play in the web and desktop apps.`;
+  } else if (query.isPending) {
+    message = "Loading video…";
+  } else if (!mediaUrl) {
+    message = "Video preview unavailable.";
   }
-
-  if (query.isPending) {
+  if (message) {
     return (
       <View style={[styles.frame, styles.state]}>
-        <Text style={styles.muted}>Loading video…</Text>
-      </View>
-    );
-  }
-
-  if (!objectUrl) {
-    return (
-      <View style={[styles.frame, styles.state]}>
-        <Text style={styles.muted}>Video preview unavailable.</Text>
+        <Text style={styles.muted}>{message}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.frame}>
-      {createElement("video", {
-        src: objectUrl,
-        controls: true,
-        preload: "metadata",
-        "aria-label": label || fileName,
-        style: {
-          width: "100%",
-          aspectRatio: "16 / 9",
-          display: "block",
-          backgroundColor: "black",
-        },
-      })}
-    </View>
+    <View style={styles.frame}>{renderVideoElement({ src: mediaUrl ?? "", label: label || fileName })}</View>
   );
 }
